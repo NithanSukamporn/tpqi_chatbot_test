@@ -47,7 +47,7 @@ app.post('/chat', async (req, res) => {
             const vector = embedding.data[0].embedding;
 
             // B. ค้นหาใน Firestore
-            const coll = db.collection("legal_knowledge_vectors");
+            const coll = db.collection("Mock_test");
             // หมายเหตุ: ต้องแน่ใจว่าสร้าง Index ใน Firebase แล้ว
             const snapshot = await coll.findNearest("vector", vector, {
                 limit: 3,

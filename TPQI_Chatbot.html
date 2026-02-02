@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบแจ้งปัญหา KNIME HUB โดย Intelligist</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #e0f2f7 0%, #d1e8ef 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 1.5rem;
+        }
+        .form-input {
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        }
+        .form-input:focus {
+            border-color: #10b981;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+        }
+        #chatbox {
+            height: 45vh;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+            background-color: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            padding: 1rem;
+        }
+        .user-message {
+            background-color: #3b82f6;
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 0.25rem;
+        }
+        .bot-message {
+            background-color: #f3f4f6;
+            color: #1f2937;
+            align-self: flex-start;
+            border-bottom-left-radius: 0.25rem;
+        }
+        /* Custom scrollbar */
+        #chatbox::-webkit-scrollbar { width: 8px; }
+        #chatbox::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        #chatbox::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
+        #chatbox::-webkit-scrollbar-thumb:hover { background: #555; }
+        
+        #dropArea {
+            border: 2px dashed #9ca3af;
+            background-color: #f9fafb;
+            transition: background-color 0.2s;
+        }
+        #dropArea.highlight {
+            background-color: #eef2ff;
+            border-color: #4f46e5;
+        }
+    </style>
+</head>
+<body class="p-6">
+
+    <div class="w-full max-w-7xl mx-auto bg-white p-6 sm:p-10 rounded-xl shadow-2xl relative z-10">
+        <header class="text-center mb-8 border-b pb-4">
+            <div class="flex flex-col sm:flex-row justify-center items-center gap-6 mb-4">
+                <img src="https://placehold.co/150x50/10b981/ffffff?text=Intelligist" onerror="this.src='https://placehold.co/150x50/10b981/ffffff?text=Intelligist'" alt="Intelligist Logo" class="h-16 sm:h-20 max-w-[200px]"> 
+                <img src="https://placehold.co/150x50/000000/ffffff?text=KNIME" onerror="this.src='https://placehold.co/150x50/000000/ffffff?text=KNIME'" alt="KNIME Logo" class="h-12 sm:h-16 max-w-[200px]">
+            </div>
+            <h1 class="text-3xl font-extrabold text-gray-900">ระบบแจ้งปัญหา KNIME HUB</h1>
+            <p class="text-gray-500 mt-1">กรุณากรอกข้อมูลและใช้ Chatbot สำหรับการแก้ไขปัญหาเบื้องต้น</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+            
+            <div>
+                <h2 class="text-2xl font-bold text-gray-800 mb-4 border-l-4 border-emerald-500 pl-3">1. รายงานปัญหาทางเทคนิค</h2>
+                <form id="supportForm" class="space-y-4 bg-gray-50 p-6 rounded-lg shadow-inner">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="firstNameInput" class="block text-sm font-medium text-gray-700">1. ชื่อ</label>
+                            <input type="text" id="firstNameInput" required class="form-input w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm">
+                        </div>
+                        <div>
+                            <label for="lastNameInput" class="block text-sm font-medium text-gray-700">2. นามสกุล</label>
+                            <input type="text" id="lastNameInput" required class="form-input w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm">
+                        </div>
+                    </div>
+                    <div>
+                        <label for="positionInput" class="block text-sm font-medium text-gray-700">3. ตำแหน่ง</label>
+                        <input type="text" id="positionInput" required class="form-input w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm">
+                    </div>
+                    <div>
+                        <label for="issueTypeSelect" class="block text-sm font-medium text-gray-700">4. ประเภทปัญหา</label>
+                        <select id="issueTypeSelect" required class="form-input w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm bg-white">
+                            <option value="" disabled selected>-- เลือกประเภทปัญหา --</option>
+                            <option value="การใช้งาน">การใช้งาน (Usage)</option>
+                            <option value="การเชื่อมต่อ">การเชื่อมต่อ (Connection)</option>
+                            <option value="การตั้งค่า Node">การตั้งค่า Node (Node Configuration)</option>
+                            <option value="การประมวลผล">การประมวลผล (Processing)</option>
+                            <option value="แนะนำการใช้งาน">แนะนำการใช้งาน (Usage Recommendation)</option>
+                            <option value="อื่นๆ">อื่นๆ (Other)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="problemDescTextarea" class="block text-sm font-medium text-gray-700">5. ปัญหาที่พบ (รายละเอียด)</label>
+                        <textarea id="problemDescTextarea" rows="4" required placeholder="กรุณาอธิบายปัญหาที่พบโดยละเอียด" class="form-input w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm resize-y"></textarea>
+                    </div>
+                    <div>
+                        <label for="imageUploadInput" class="block text-sm font-medium text-gray-700">6. อัปโหลดรูปภาพปัญหาที่พบ (ถ้ามี)</label>
+                        <input type="file" id="imageUploadInput" accept="image/*" class="form-input w-full mt-1 block text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100">
+                        <p id="imageNote" class="text-xs text-red-500 mt-1">*รูปภาพจะถูกบันทึกชื่อไฟล์ไว้ในระบบ</p>
+                    </div>
+                    <button type="submit" id="submitButton" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-4 rounded-lg shadow-lg transition duration-200 transform hover:scale-[1.01] disabled:bg-gray-400 flex items-center justify-center">
+                        <span id="submitText">ส่งเรื่องปัญหา</span>
+                        <div id="submitLoading" class="hidden animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full ml-2"></div>
+                    </button>
+                    <p id="firestoreStatus" class="text-center text-xs text-gray-500 mt-2">กำลังรอการเชื่อมต่อฐานข้อมูล...</p>
+                </form>
+            </div>
+            
+            <div class="mt-10 lg:mt-0">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4 border-l-4 border-indigo-500 pl-3">2. Chatbot ผู้ช่วย (Guardrail AI)</h2>
+                <div class="flex flex-col h-full min-h-[70vh] bg-gray-100 p-4 rounded-lg shadow-lg">
+                    
+                    <div class="mb-3 p-2 bg-indigo-50 border border-indigo-200 rounded-lg text-sm text-indigo-700 flex items-center">
+                        <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                        สถานะ: Secure Connection (Render Backend)
+                    </div>
+
+                    <div id="dropArea" class="p-3 mb-3 rounded-lg text-center cursor-pointer">
+                        <input type="file" id="chatImageInput" accept="image/*" class="hidden">
+                        <p id="dropText" class="text-gray-500 text-sm">คลิกเพื่ออัปโหลด หรือ ลาก & วาง รูปภาพ (.jpg, .png)</p>
+                        <div id="imagePreviewContainer" class="mt-2 hidden">
+                            <img id="imagePreview" class="max-h-24 w-auto mx-auto rounded-lg shadow-md" alt="Image Preview">
+                            <button id="clearImageButton" class="mt-1 text-xs text-red-500 hover:text-red-700 font-medium">ล้างรูปภาพ</button>
+                        </div>
+                    </div>
+
+                    <div id="chatbox" class="flex-grow p-4 space-y-4 rounded-lg bg-white border border-gray-200 shadow-inner overflow-y-auto mb-3">
+                        <div class="flex justify-start">
+                            <div class="max-w-[80%] p-3 rounded-xl shadow-md bot-message">
+                                สวัสดีครับ! ผมเชื่อมต่อกับคลังความรู้กฎหมายแล้ว สอบถามได้เลยครับ
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="loadingIndicator" class="hidden text-center my-2">
+                        <div class="animate-spin inline-block w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full"></div>
+                        <p class="text-indigo-600 text-sm mt-1">กำลังค้นหาข้อมูลใน Database...</p>
+                    </div>
+
+                    <div class="flex space-x-2 mt-2">
+                        <textarea id="promptInput" rows="1" placeholder="พิมพ์คำถามของคุณ..." class="form-input flex-grow px-4 py-2 border border-gray-300 rounded-lg shadow-sm resize-none"></textarea>
+                        <button id="sendButton" class="w-24 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-200 transform hover:scale-[1.02] disabled:bg-indigo-400 flex items-center justify-center">
+                            ส่ง
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="successModal" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden items-center justify-center z-50">
+        <div class="bg-white p-8 rounded-xl shadow-2xl max-w-sm text-center transform transition duration-300 scale-100">
+            <svg class="mx-auto h-16 w-16 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h3 class="text-xl font-bold text-gray-900 mt-4">แจ้งการรับข้อมูลสำเร็จ!</h3>
+            <p class="text-gray-500 mt-2">ได้รับข้อมูลท่านแล้ว โดยทาง Intelligist จะแจ้งผลการดำเนินการและติดต่อท่านโดยเร็ว</p>
+            <button id="closeModalButton" class="mt-5 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-150">ปิด</button>
+        </div>
+    </div>
+
+    <script type="module">
+        // -----------------------------------------------------------
+        // 1. CONFIGURATION 
+        // -----------------------------------------------------------
+        
+        // 🔹 ใส่ URL ของ Render ที่คุณได้มา (ต้องมี /chat ต่อท้าย)
+        const RENDER_BACKEND_URL = "https://tpqi-chatbot-test.onrender.com/chat"; 
+
+        // 🔹 ใส่ Config ของ Firebase (จาก Firebase Console)
+        const firebaseConfig = {
+            apiKey: "AIzaSyCk_zCsIaNZs_kNSkiiPrEkeSgc-0TAg9A",
+            authDomain: "tpqi-3725e.firebaseapp.com",
+            projectId: "tpqi-3725e",
+            storageBucket: "tpqi-3725e.firebasestorage.app",
+            messagingSenderId: "683779606168",
+            appId: "1:683779606168:web:73d58ba750669fbbb572ed",
+            measurementId: "G-DM97Z98SGS"
+        };
+        // -----------------------------------------------------------
+
+
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, addDoc, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        // Setup Firebase
+        let app, db, auth, userId = 'anonymous', isAuthReady = false;
+        
+        try {
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+            
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    userId = user.uid;
+                    document.getElementById('firestoreStatus').textContent = `✅ เชื่อมต่อฐานข้อมูลสำเร็จ (User: ${userId})`;
+                    isAuthReady = true;
+                    document.getElementById('submitButton').disabled = false;
+                } else {
+                    await signInAnonymously(auth);
+                }
+            });
+        } catch (e) {
+            console.error("Firebase Init Error:", e);
+            document.getElementById('firestoreStatus').textContent = `❌ Config ผิดพลาด: ${e.message}`;
+        }
+
+        // --- SECTION 1: FORM SUBMISSION ---
+        const supportForm = document.getElementById('supportForm');
+        const submitButton = document.getElementById('submitButton');
+        const submitText = document.getElementById('submitText');
+        const submitLoading = document.getElementById('submitLoading');
+        const successModal = document.getElementById('successModal');
+        const imageUploadInput = document.getElementById('imageUploadInput');
+
+        supportForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!isAuthReady) return;
+
+            submitText.textContent = "กำลังส่ง...";
+            submitLoading.classList.remove('hidden');
+            submitButton.disabled = true;
+
+            try {
+                const ticketData = {
+                    firstName: document.getElementById('firstNameInput').value,
+                    lastName: document.getElementById('lastNameInput').value,
+                    position: document.getElementById('positionInput').value,
+                    issueType: document.getElementById('issueTypeSelect').value,
+                    problemDescription: document.getElementById('problemDescTextarea').value,
+                    imageFileName: imageUploadInput.files.length > 0 ? imageUploadInput.files[0].name : 'N/A',
+                    submittedByUserId: userId,
+                    timestamp: new Date().toISOString()
+                };
+
+                await addDoc(collection(db, `knime_support_tickets`), ticketData);
+                successModal.classList.remove('hidden');
+                successModal.classList.add('flex');
+                supportForm.reset();
+            } catch (error) {
+                alert(`เกิดข้อผิดพลาด: ${error.message}`);
+            } finally {
+                submitText.textContent = "ส่งเรื่องปัญหา";
+                submitLoading.classList.add('hidden');
+                submitButton.disabled = false;
+            }
+        });
+
+        document.getElementById('closeModalButton').addEventListener('click', () => {
+            successModal.classList.add('hidden');
+            successModal.classList.remove('flex');
+        });
+
+        // --- SECTION 2: CHATBOT (RENDER CONNECTION) ---
+        const promptInput = document.getElementById('promptInput');
+        const sendButton = document.getElementById('sendButton');
+        const chatbox = document.getElementById('chatbox');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const dropArea = document.getElementById('dropArea');
+        const chatImageInput = document.getElementById('chatImageInput');
+        const imagePreview = document.getElementById('imagePreview');
+        let uploadedImageBase64 = null;
+        let uploadedImageMimeType = null;
+        let isSending = false;
+
+        // Image Handling Functions
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function clearImage() {
+            uploadedImageBase64 = null;
+            uploadedImageMimeType = null;
+            chatImageInput.value = ''; 
+            document.getElementById('imagePreviewContainer').classList.add('hidden');
+            document.getElementById('dropText').classList.remove('hidden');
+        }
+
+        async function handleImageSelect(file) {
+            if (!file || !file.type.startsWith('image/')) return;
+            const base64Url = await fileToBase64(file);
+            imagePreview.src = base64Url;
+            document.getElementById('imagePreviewContainer').classList.remove('hidden');
+            document.getElementById('dropText').classList.add('hidden');
+            const parts = base64Url.split(',');
+            uploadedImageMimeType = parts[0].match(/:(.*?);/)?.[1];
+            uploadedImageBase64 = parts[1];
+        }
+
+        dropArea.addEventListener('click', () => chatImageInput.click());
+        chatImageInput.addEventListener('change', (e) => { if (e.target.files[0]) handleImageSelect(e.target.files[0]); });
+        document.getElementById('clearImageButton').addEventListener('click', clearImage);
+        
+        // Drag & Drop events
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, (e) => { e.preventDefault(); e.stopPropagation(); }, false);
+        });
+        dropArea.addEventListener('drop', (e) => { if (e.dataTransfer.files[0]) handleImageSelect(e.dataTransfer.files[0]); });
+
+        function addMessage(text, sender, imageUrl = null) {
+            const div = document.createElement('div');
+            div.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
+            let content = '';
+            if (imageUrl) content += `<img src="${imageUrl}" class="max-w-full h-auto rounded-lg mb-2 border">`;
+            content += `<div class="${sender === 'user' ? 'user-message' : 'bot-message'} max-w-[80%] p-3 rounded-xl shadow-md whitespace-pre-wrap break-words">${text}</div>`;
+            div.innerHTML = content;
+            chatbox.appendChild(div);
+            chatbox.scrollTop = chatbox.scrollHeight;
+        }
+
+        // *** CORE FUNCTION: ยิงไปหา Render Backend ***
+        async function sendMessage() {
+            const text = promptInput.value.trim();
+            if (isSending) return;
+            if (!text && !uploadedImageBase64) return;
+
+            isSending = true;
+            sendButton.disabled = true;
+            loadingIndicator.classList.remove('hidden');
+
+            // 1. Show User Message
+            addMessage(text, 'user', uploadedImageBase64 ? `data:${uploadedImageMimeType};base64,${uploadedImageBase64}` : null);
+            promptInput.value = '';
+
+            try {
+                // 2. Prepare Payload
+                let imagePayload = null
+                if (uploadedImageBase64) {
+                    imagePayload = `data:${uploadedImageMimeType};base64,${uploadedImageBase64}`;
+                }
+
+                // 3. Fetch Render API
+                const response = await fetch(RENDER_BACKEND_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        message: text,
+                        image: imagePayload
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || `Server Error: ${response.status}`);
+                }
+
+                // 4. Show Bot Response
+                addMessage(data.answer, 'bot');
+                console.log("Context Used:", data.context); // Debug ดู Context
+
+            } catch (error) {
+                console.error("Error:", error);
+                addMessage(`❌ เกิดข้อผิดพลาด: ${error.message}`, 'bot');
+            } finally {
+                isSending = false;
+                sendButton.disabled = false;
+                loadingIndicator.classList.add('hidden');
+                clearImage();
+                promptInput.focus();
+            }
+        }
+
+        sendButton.addEventListener('click', sendMessage);
+        promptInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+        });
+
+    </script>
+</body>
+</html>
